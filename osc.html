@@ -1,0 +1,825 @@
+<!doctype html>
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel=stylesheet type="text/css" href="style.css"> 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oscillator Sandbox</title>
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML">
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<style type="text/css">
+#osctable td {
+  padding-right: 8px;
+}
+#osctable th {
+  padding-right: 8px;
+  text-align: center;
+}
+.small {
+  font-size: 80%;
+}
+.osclabel {
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  border: 2px solid green;
+  -webkit-transition-duration: 0.4s; /* Safari */
+  transition-duration: 0.4s;
+}
+.tooltip {
+    position: relative;
+    display: inline-block;
+    border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 350px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    font-size: 75%;
+    
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    top: -5px;
+    left: 105%;
+}
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+</style>
+<script type="text/javascript">
+
+$( document ).ready(function() {
+  construct_piano ();
+});
+
+
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+var osc = [];
+var gain = [];
+var playing = [];
+var freq = [];
+var i;
+var oscillators = 4;
+
+
+for (i = 0; i < oscillators; i++) {
+  osc[i] = audioCtx.createOscillator();
+  gain[i] = audioCtx.createGain();
+  gain[i].gain.value = 1;
+  gain[i].connect(audioCtx.destination);
+  osc[i].type = 'sawtooth';
+  freq[i] = 220.0;
+  osc[i].frequency.value = freq[i];
+  osc[i].start(0);
+  playing[i] = false;
+}
+
+function updatefreqs()
+{
+  var i;
+  for (i = 0; i < oscillators; i++) {
+    freq[i] = Number($("#Freq"+(i+1)).val());
+    osc[i].frequency.setValueAtTime(freq[i], audioCtx.currentTime);
+  }
+  updateplaying();
+}
+
+function updatewaves()
+{
+  var i;
+  for (i = 0; i < oscillators; i++) {
+    osc[i].type = $("#Wave"+(i+1)).val();
+  }
+}
+
+function updategains()
+{
+  var i;
+  for (i = 0; i < oscillators; i++) {
+    var thegain = $("#Gain"+(i+1)).val();
+    gain[i].gain.value = thegain / 100.0;
+  }
+}
+
+function allgains(g)
+{
+  var i;
+  for (i = 0; i < oscillators; i++) {
+    $("#Gain"+(i+1)).val(g);
+  }
+  updategains();
+}
+
+function updateplaying()
+{
+  var i;
+  var sep = "";
+  var freqlist = "";
+  for (i = 0; i < oscillators; i++) {
+    if (playing[i]) {
+      freqlist += sep + parseFloat(Number(freq[i]).toFixed(3));
+      sep = ", ";
+    }
+  }
+  if (freqlist == "") {
+    $("#pf").css("display","none");
+  } else {
+    $("#pf").text("Playing: " + freqlist);
+    $("#pf").css("display","inline");
+  }
+}
+
+
+function stoposc(theosc)
+{
+  playing[theosc-1] = false;
+  osc[theosc-1].disconnect();
+  $("#osc" + theosc + "label").css("background-color","white");
+  $("#osc" + theosc + "label").css("color","black");
+  updateplaying();
+}
+
+function stopall()
+{
+  var i;
+  for (i=1; i <= oscillators; i++) {
+    stoposc(i);
+  }
+}
+
+function startoscn(theosc)
+{
+  playing[theosc-1] = true;
+  osc[theosc-1].connect(gain[theosc-1]);
+  $("#osc" + theosc + "label").css("background-color","green");
+  $("#osc" + theosc + "label").css("color","white");
+  updateplaying();
+}
+
+function startosc(theosc)
+{
+  updatefreqs();
+  updatewaves();
+  updategains();
+  startoscn(theosc);
+}
+
+function start123()
+{
+  updatefreqs();
+  updatewaves();
+  updategains();
+  var i;
+  for (i=1; i <= 3; i++) {
+    startoscn(i);
+  }
+}
+
+function start123stop4()
+{
+  updatefreqs();
+  updatewaves();
+  updategains();
+  var i;
+  for (i=1; i <= 3; i++) {
+    startoscn(i);
+  }
+  stoposc(4);
+}
+
+function startall()
+{
+  updatefreqs();
+  updatewaves();
+  updategains();
+  for (i=1; i <= oscillators; i++) {
+    startoscn(i);
+  }
+}
+
+function setto(f1,f2,f3,f4)
+{
+  $("#Freq1").val(f1);
+  $("#Freq2").val(f2);
+  $("#Freq3").val(f3);
+  $("#Freq4").val(f4);
+  updatefreqs();
+}
+function setints(b,i1,i2,i3,i4)
+{
+  $("#Freq1").val(b);
+  $("#Freq2").val(parseFloat((b * i1).toFixed(3)));
+  $("#Freq3").val(parseFloat((b * i2).toFixed(3)));
+  $("#Freq4").val(parseFloat((b * i3).toFixed(3)));
+  updatefreqs();
+}
+function setETints1(b,i1)
+{
+  $("#Freq1").val(b);
+  $("#Freq2").val(parseFloat((b * Math.pow(2.0,i1/12.0)).toFixed(3)));
+  $("#Freq3").val(0);
+  $("#Freq4").val(0);
+  updatefreqs();
+}
+function setETints2(b,i1,i2)
+{
+  $("#Freq1").val(b);
+  $("#Freq2").val(parseFloat((b * Math.pow(2.0,i1/12.0)).toFixed(3)));
+  $("#Freq3").val(parseFloat((b * Math.pow(2.0,i2/12.0)).toFixed(3)));
+  $("#Freq4").val(0);
+  updatefreqs();
+}
+function setETints3(b,i1,i2,i3)
+{
+  $("#Freq1").val(b);
+  $("#Freq2").val(parseFloat((b * Math.pow(2.0,i1/12.0)).toFixed(3)));
+  $("#Freq3").val(parseFloat((b * Math.pow(2.0,i2/12.0)).toFixed(3)));
+  $("#Freq4").val(parseFloat((b * Math.pow(2.0,i3/12.0)).toFixed(3)));
+  updatefreqs();
+}
+
+function multiplyfreqs(mult)
+{
+  for (i=1; i <= oscillators; i++) {
+    $("#Freq" + i).val($("#Freq" + i).val() * mult);
+  }
+  updatefreqs();
+}
+
+function setallwave(thewave)
+{
+  for (i=1; i <= oscillators; i++) {
+    $("#Wave" + i).val(thewave);
+  }
+  updatewaves();
+}
+
+function
+get_freq (base, tuning, degree)
+{
+	while (degree > 12) {
+		base = base * 2;
+		degree = degree - 12;
+	}
+	while (degree < 0) {
+		base = base / 2;
+		degree = degree + 12;
+	}
+	return base * tuning[degree-1];
+}
+
+function
+playnote(base, tuning, degree)
+{
+	$("#Freq1").val(get_freq(base,tuning,degree));
+	$("#Freq2").val(0);
+	$("#Freq3").val(0);
+	$("#Freq4").val(0);
+	updatefreqs();
+	startosc(1);
+	stoposc(2);
+	stoposc(3);
+	stoposc(4);
+}
+
+function
+playmajorchord(base, tuning, degree)
+{
+	$("#Freq1").val(get_freq(base,tuning,degree));
+	$("#Freq2").val(get_freq(base,tuning,degree+4));
+	$("#Freq3").val(get_freq(base,tuning,degree+7));
+	$("#Freq4").val(0);
+	updatefreqs();
+	startosc(1);
+	startosc(2);
+	startosc(3);
+	stoposc(4);
+}
+
+function
+playminorchord(base, tuning, degree)
+{
+	$("#Freq1").val(get_freq(base,tuning,degree));
+	$("#Freq2").val(get_freq(base,tuning,degree+3));
+	$("#Freq3").val(get_freq(base,tuning,degree+7));
+	$("#Freq4").val(0);
+	updatefreqs();
+	startosc(1);
+	startosc(2);
+	startosc(3);
+	stoposc(4);
+}
+
+function
+playdominant7chord(base, tuning, degree)
+{
+	$("#Freq1").val(get_freq(base,tuning,degree));
+	$("#Freq2").val(get_freq(base,tuning,degree+4));
+	$("#Freq3").val(get_freq(base,tuning,degree+7));
+	$("#Freq4").val(get_freq(base,tuning,degree+10));
+	updatefreqs();
+	startosc(1);
+	startosc(2);
+	startosc(3);
+	startosc(4);
+}
+
+function
+playmajor7chord(base, tuning, degree)
+{
+	$("#Freq1").val(get_freq(base,tuning,degree));
+	$("#Freq2").val(get_freq(base,tuning,degree+4));
+	$("#Freq3").val(get_freq(base,tuning,degree+7));
+	$("#Freq4").val(get_freq(base,tuning,degree+11));
+	updatefreqs();
+	startosc(1);
+	startosc(2);
+	startosc(3);
+	startosc(4);
+}
+
+
+
+var note_names = [ "A",
+	    "A&#x266f;/B&#x266d;",
+	    "B",
+	    "C",
+	    "C&#x266f;/D&#x266d;",
+	    "D",
+	    "D&#x266f;/E&#x266d;",
+	    "E",
+	    "F",
+	    "F&#x266f;/G&#x266d;",
+	    "G",
+	    "G&#x266f;/A&#x266d;" ];
+
+function
+piano_row(tuning, name)
+{
+	var i;
+	var row = "<tr>\n<td><span class=tooltip>" + name +
+			"<span class=tooltiptext>Frequencies: " + tuning + "</span></span></td>\n";
+	for (i=1; i <= 12; i++) {
+		row += "<td>";
+		row += "<span class=\"button small\" onclick='playnote($(\"#base\").val()," + tuning + ", " + i + ");'>" +
+			note_names[i-1] + "</span>";
+		row += "</td>";
+	}
+	row += "\n</tr><tr><td></td>\n";
+	for (i=1; i <= 12; i++) {
+		row += "<td>";
+		row += "<span class=\"button small\" onclick='playmajorchord($(\"#base\").val()," + tuning + ", " + i + ");'>" +
+			note_names[i-1] + " major</span>";
+		row += "</td>";
+	}
+	row += "\n</tr><tr><td></td>\n";
+	for (i=1; i <= 12; i++) {
+		row += "<td>";
+		row += "<span class=\"button small\" onclick='playminorchord($(\"#base\").val()," + tuning + ", " + i + ");'>" +
+			note_names[i-1] + " minor</span>";
+		row += "</td>";
+	}
+	row += "\n</tr><tr><td></td>\n";
+	for (i=1; i <= 12; i++) {
+		row += "<td>";
+		row += "<span class=\"button small\" onclick='playdominant7chord($(\"#base\").val()," + tuning + ", " + i + ");'>" +
+			note_names[i-1] + " 7</span>";
+		row += "</td>";
+	}
+	row += "\n</tr><tr><td></td>\n";
+	for (i=1; i <= 12; i++) {
+		row += "<td>";
+		row += "<span class=\"button small\" onclick='playmajor7chord($(\"#base\").val()," + tuning + ", " + i + ");'>" +
+			note_names[i-1] + " maj7</span>";
+		row += "</td>";
+	}
+	row += "\n</tr>\n";
+	return row;
+}
+
+function
+et_tuning()
+{
+	var i;
+	var t = "[1";
+	for (i=1; i <= 11; i++) {
+		t += ", Math.pow(2," + i + "/12)";
+	}
+	t += "]";
+	return t;
+}
+
+function
+construct_piano()
+{
+	var piano = "<table>\n";
+	piano += piano_row (et_tuning (), "Equal temperament");
+	piano += piano_row ("[1, 256/243, 9/8,  32/27, 81/64, 4/3, 729/512,  3/2, 128/81, 27/16, 16/9, 243/128]",
+	"Pythagorean (using A4)");
+	piano += piano_row ("[1, 256/243, 9/8,  32/27, 81/64, 4/3, 1024/729, 3/2, 128/81, 27/16, 16/9, 243/128]",
+	"Pythagorean (using d5)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 45/32,    3/2, 8/5,    5/3,   16/9, 15/8]",
+	"Just (5 limit symmetric ver1 A4)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 64/45,    3/2, 8/5,    5/3,   16/9, 15/8]",
+	"Just (5 limit symmetric ver1 d5)");
+	piano += piano_row ("[1, 16/15,   10/9, 6/5,   5/4,   4/3, 45/32,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit symmetric ver2 A4)");
+	piano += piano_row ("[1, 16/15,   10/9, 6/5,   5/4,   4/3, 64/45,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit symmetric ver2 d5)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 45/32,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit asymmetric ver1 A4)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 64/45,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit asymmetric ver1 d5)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 25/18,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit asymmetric ver2 A4)");
+	piano += piano_row ("[1, 16/15,   9/8,  6/5,   5/4,   4/3, 36/25,    3/2, 8/5,    5/3,   9/5, 15/8]",
+	"Just (5 limit asymmetric ver2 d5)");
+	piano += "</table>\n";
+	$("#piano").html(piano);
+}
+
+</script>
+</head>
+
+<body>
+
+<b>Oscillator Sandbox</b>
+&nbsp;
+&nbsp;
+<a href="." class="button">&#10094; back to index</a>
+
+
+<p>
+
+<table id=osctable>
+<tr>
+<th></th>
+<th>Frequency <span style='font-size:50%;'>(in Hz)</span> </th>
+<th>Wave</th>
+<th>Gain</th>
+<th></th>
+</tr>
+
+<tr>
+<td>
+<span id="osc1label" class=osclabel>Oscillator 1:</span>
+</td><td>
+<input type="text" id="Freq1" oninput='updatefreqs()' value="440" size="5" />
+</td><td>
+<select id=Wave1 onchange='updatewaves();'>
+  <option value="sine">sine</option>
+  <option value="square">square</option>
+  <option selected value="sawtooth">sawtooth</option>
+  <option value="triangle">triangle</option>
+</select>
+</td><td>
+<input type="range" min="0" max="100" value="50" class="slider" id="Gain1" oninput='updategains();'>
+</td><td>
+<span class=buttongreen
+onclick='startosc(1)'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stoposc(1)'
+>Stop</span>
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="osc2label" class=osclabel>Oscillator 2:</span>
+</td><td>
+<input type="text" id="Freq2" oninput='updatefreqs()' value="660" size="5" />
+</td><td>
+<select id=Wave2 onchange='updatewaves();'>
+  <option value="sine">sine</option>
+  <option value="square">square</option>
+  <option selected value="sawtooth">sawtooth</option>
+  <option value="triangle">triangle</option>
+</select>
+</td><td>
+<input type="range" min="0" max="100" value="50" class="slider" id="Gain2" oninput='updategains();'>
+</td><td>
+<span class=buttongreen
+onclick='startosc(2)'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stoposc(2)'
+>Stop</span>
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="osc3label" class=osclabel>Oscillator 3:</span>
+</td><td>
+<input type="text" id="Freq3" oninput='updatefreqs()' value="220" size="5" />
+</td><td>
+<select id=Wave3 onchange='updatewaves();'>
+  <option value="sine">sine</option>
+  <option value="square">square</option>
+  <option selected value="sawtooth">sawtooth</option>
+  <option value="triangle">triangle</option>
+</select>
+</td><td>
+<input type="range" min="0" max="100" value="50" class="slider" id="Gain3" oninput='updategains();'>
+</td><td>
+<span class=buttongreen
+onclick='startosc(3)'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stoposc(3)'
+>Stop</span>
+</td>
+</tr>
+
+<tr>
+<td>
+<span id="osc4label" class=osclabel>Oscillator 4:</span>
+</td><td>
+<input type="text" id="Freq4" oninput='updatefreqs()' value="221" size="5" />
+</td><td>
+<select id=Wave4 onchange='updatewaves();'>
+  <option value="sine">sine</option>
+  <option value="square">square</option>
+  <option selected value="sawtooth">sawtooth</option>
+  <option value="triangle">triangle</option>
+</select>
+</td><td>
+<input type="range" min="0" max="100" value="50" class="slider" id="Gain4" oninput='updategains();'>
+</td><td>
+<span class=buttongreen
+onclick='startosc(4)'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stoposc(4)'
+>Stop</span>
+</td>
+</tr>
+
+</table>
+
+<p>
+<span id=pf style="color:green;"></span>&nbsp;
+
+<p>
+Set all waves to:
+&nbsp;
+<span class=button
+onclick='setallwave("sine")'
+>sine</span>
+<span class=button
+onclick='setallwave("square")'
+>square</span>
+<span class=button
+onclick='setallwave("sawtooth")'
+>sawtooth</span>
+<span class=button
+onclick='setallwave("triangle")'
+>triangle</span>
+
+<p>
+Set all gains to:
+&nbsp;
+<span class=button onclick='allgains(10)'>10</span>
+<span class=button onclick='allgains(50)'>50</span>
+<span class=button onclick='allgains(100)'>100</span>
+
+<p>
+<table>
+  <tr>
+    <td rowspan=2>
+All frequencies: &nbsp;
+    </td>
+    <td>
+      Up:
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(6/5)'>Just minor third <span class=small>(6/5)<span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(Math.pow(2,3/12))'>ET minor third <span class=small>(2<sup>3/12</sup>)</span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(5/4)'>Just major third <span class=small>(5/4)<span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(Math.pow(2,4/12))'>ET major third <span class=small>(2<sup>4/12</sup>)</span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(3/2)'>Just fifth <span class=small>(3/2)<span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(Math.pow(2,7/12))'>ET fifth <span class=small>(2<sup>7/12</sup>)</span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(2/1)'>Octave <span class=small>(2/1)</span></span>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Down:
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(5/6)'>Just minor third <span class=small>(5/6)<span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(Math.pow(2,-3/12))'>ET minor third <span class=small>(2<sup>-3/12</sup>)</span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(4/5)'>Just major third <span class=small>(4/5)<span></span>
+    </td><td>
+	    <span class=button onclick='multiplyfreqs(Math.pow(2,-4/12))'>ET major third <span class=small>(2<sup>-4/12</sup>)</span></span>
+    </td><td>
+      <span class=button onclick='multiplyfreqs(2/3)'>Just fifth <span class=small>(2/3)</span></span>
+    </td><td>
+      <span class=button onclick='multiplyfreqs(Math.pow(2,-7/12))'>ET fifth <span class=small>(2<sup>-7/12</sup>)</span></span>
+    </td><td>
+      <span class=button onclick='multiplyfreqs(1/2)'>Octave <span class=small>(1/2)</span></span>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>
+<span class=buttongreen
+onclick='startall();'
+>Start all</span>
+&nbsp;
+<span class=buttongreen
+onclick='start123();'
+>Start 1,2,3</span>
+&nbsp;
+<span class=buttonred
+onclick='stopall();'
+>Stop all</span>
+
+<hr>
+
+<p>
+<b>Presets:</b> (also starts/stops relevant oscillaltors)
+
+<p>
+Base frequency for the presets: <input type="text" id="base" value="440" size="5" />
+
+<p>
+Just tunings (5,7,17 limit):
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 0); start123stop4();'
+>major <span class=small>(1/1, 5/4, 3/2)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 6/5, 3/2, 0); start123stop4();'
+>minor <span class=small>(1/1, 6/5, 3/2)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 16/9); startall();'
+>dominant 7th <span class=small>(1/1, 5/4, 3/2, 16/9)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 9/5); startall();'
+>dominant 7th <span class=small>(1/1, 5/4, 3/2, 9/5)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 7/4); startall();'
+>dominant 7th <span class=small>(1/1, 5/4, 3/2, 7/4)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 15/8); startall();'
+>major 7th <span class=small>(1/1, 5/4, 3/2, 15/8)</span></span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 5/4, 3/2, 13/7); startall();'
+>major 7th <span class=small>(1/1, 5/4, 3/2, 13/7)</span></span>
+
+<p>
+Just Pythagorean:
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 81/64, 3/2, 0); start123stop4();'
+>major</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 32/27, 3/2, 0); start123stop4();'
+>minor</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 81/64, 3/2, 16/9); startall();'
+>dominant 7th</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 81/64, 3/2, 243/128); startall();'
+>major 7th</span>
+
+<p>
+Equal temperament:
+
+&nbsp;
+<span class=button
+onclick='setETints2($("#base").val(), 4, 7); start123stop4();'
+>major</span>
+
+&nbsp;
+<span class=button
+onclick='setETints2($("#base").val(), 3, 7); start123stop4();'
+>minor</span>
+
+&nbsp;
+<span class=button
+onclick='setETints3($("#base").val(), 4, 7, 10); startall();'
+>dominant 7th</span>
+
+&nbsp;
+<span class=button
+onclick='setETints3($("#base").val(), 4, 7, 11); startall();'
+>major 7th</span>
+
+<p>
+Tritones (A4 means augmented 4th, d5 is diminished 5th):
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 45/32 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (A4 45/32)</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 64/45 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (d5 64/45)</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 25/18 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (A4 25/18)</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 36/25 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (d5 36/25)</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 7/5 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (A4 7/5)</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 10/7 , 0, 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Just tritone (d5 10/7)</span>
+
+&nbsp;
+<span class=button
+onclick='setETints1($("#base").val(), 6); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>ET tritone</span>
+
+<p>
+Overtones:
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), 2, 3, 4);setallwave("sine"); startall();'
+>Overtones (sets to sine waves)</span>
+
+<p>
+Wolves and commas:
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), (3/2)/(531441/524388), (3/2), 0); startosc(1); startosc(2); stoposc(3); stoposc(4);'
+>Wolf fifth</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), (3/2)/(531441/524388), (3/2), 0); startosc(1); stoposc(2); startosc(3); stoposc(4);'
+>True fifth</span>
+
+&nbsp;
+<span class=button
+onclick='setints($("#base").val(), (3/2)/(531441/524388), (3/2), 0); stoposc(1); startosc(2); startosc(3); stoposc(4);'
+>The pythagorean comma</span>
+
+<hr>
+
+<p>
+<b>Notes and chords in varius tunings:</b> (same base frequency as above)
+
+<div id=piano> </div>
+
+</body>
+</html>

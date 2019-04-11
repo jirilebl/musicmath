@@ -1,0 +1,253 @@
+<!doctype html>
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel=stylesheet type="text/css" href="style.css"> 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Superposition Graph</title>
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML">
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript">
+$( document ).ready(function() {
+  $("#mult").val(1500);
+  updatemult();
+
+  doresize();
+});
+$( window ).resize(function() {
+  doresize ();
+});
+
+$(document).keydown(function(e) {
+  var m;
+  switch(e.which) {
+    case 37: // left
+    m = $("#mult").val();
+    $("#mult").val(+m-1);
+    updatemult();
+    break;
+
+    case 38: // up
+    break;
+
+    case 39: // right
+    m = $("#mult").val();
+    $("#mult").val(+m+1);
+    updatemult();
+    break;
+
+    case 40: // down
+    break;
+
+    default: return; // exit this handler for other keys
+  }
+  // don't double increment/decrement
+  if (document.activeElement == $("#mult").get(0)) {
+    e.preventDefault();
+  }
+});
+
+function doresize()
+{
+  var canvas = document.getElementById("canvas");
+
+  canvas.width = $("body").innerWidth();
+  if (canvas.width < 600) {
+    canvas.width = 600;
+  }
+  canvas.height = 200;
+
+  draw();
+}
+
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+var osc_running = false;
+var osc1;
+var osc2;
+
+var gain1 = audioCtx.createGain();
+gain1.gain.value = 1;
+gain1.connect(audioCtx.destination);
+
+var gain2 = audioCtx.createGain();
+gain2.gain.value = 1;
+gain2.connect(audioCtx.destination);
+
+// These are recomputed
+var cwidth;
+var cheight;
+var xzero;
+var xunit;
+var yzero;
+var yunit;
+var xmin;
+var xmax;
+var ymin;
+var ymax;
+
+var freq_mult = 1.4;
+
+function fun1(x) {return Math.sin(x);  }
+function fun2(x) {return Math.sin(freq_mult*x);}
+function fun3(x) {return Math.sin(x) + Math.sin(freq_mult*x);}
+
+function xtopixel(x)
+{
+  return x*xunit + xzero;
+}
+
+function ytopixel(y)
+{
+  return -y*yunit + (cheight-yzero);
+}
+
+function draw_wave(ctx,func,color,thick)
+{
+  step = (xmax-xmin)/cwidth;
+
+  ctx.beginPath();
+  ctx.lineWidth = thick;
+  ctx.strokeStyle = color;
+
+  ctx.moveTo(xtopixel(xmin),ytopixel(func(xmin)));
+  for (var x = xmin+step; x <= xmax; x += step) {
+    ctx.lineTo(xtopixel(x),ytopixel(func(x)));
+  }
+  ctx.stroke();
+}
+
+function draw() {
+ var canvas = document.getElementById("canvas");
+ if (null==canvas || !canvas.getContext) return;
+
+ cwidth = canvas.width;
+ cheight = canvas.height;
+ xzero = cwidth / 70;
+ yzero = cheight / 2;
+ xunit = cwidth / 90;
+ yunit = cheight / 4;
+ xmin = -(xzero/xunit);
+ xmax = ((cwidth-xzero)/xunit);
+ ymax = (yzero/yunit);
+ ymin = -((cheight-yzero)/yunit);
+
+ ctx = canvas.getContext("2d");
+
+ ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+ draw_axes(ctx);
+ draw_wave(ctx,fun1,"#000999",0.5); 
+ draw_wave(ctx,fun2,"#009909",0.5);
+ draw_wave(ctx,fun3,"#e00000",1.5);
+}
+
+function draw_axes(ctx) {
+ ctx.beginPath();
+ ctx.lineWidth = 1;
+ ctx.strokeStyle = "rgb(128,128,128)"; 
+ ctx.moveTo(xtopixel(xmin),ytopixel(0));
+ ctx.lineTo(xtopixel(xmax),ytopixel(0));
+ ctx.moveTo(xtopixel(0),ytopixel(ymin));
+ ctx.lineTo(xtopixel(0),ytopixel(ymax));
+ ctx.stroke();
+}
+
+function
+updatemult()
+{
+  freq_mult = $("#mult").val() / 1000;
+  draw();
+  $("#multnum").text(freq_mult.toFixed(3));
+  $("#multnumfreq").text((freq_mult*440).toFixed(3));
+  if (osc_running) {
+    stoposc();
+    startosc();
+    // This leads to weird issues such as cancelling out waves on unison
+    //osc1.frequency.value = 440;
+    //osc2.frequency.value = freq_mult*440;
+  }
+}
+
+function startosc()
+{
+  if (! osc_running) {
+    osc_running = true;
+    osc1 = audioCtx.createOscillator();
+    osc1.connect(gain1);
+    osc1.type = 'sine';
+    osc1.frequency.value = 440;
+    osc2 = audioCtx.createOscillator();
+    osc2.connect(gain2);
+    osc2.type = 'sine';
+    osc2.frequency.value = freq_mult*440;
+
+    osc1.start(0);
+    osc2.start(0);
+  }
+}
+
+function stoposc()
+{
+  if (osc_running) {
+    osc_running = false;
+    osc1.stop(0);
+    osc2.stop(0);
+    osc1 = null;
+    osc2 = null;
+  }
+}
+
+</script>
+</head>
+<body>
+<b>Superposition Graph</b>
+&nbsp;
+&nbsp;
+<a href="." class="button">&#10094; back to index</a>
+
+<p>
+Fixed frequency
+<span style='color:#000999;'>blue wave</span>,
+variable frequency
+<span style='color:#009909;'>green wave</span>,
+and their superposition, the
+<span style='color:#e00000;'>red wave</span>.
+<p>
+<canvas id="canvas" width="800" height="200"></canvas>
+<p>
+Multiplier of second frequency: <input style='width:200px;' type="range" min="500" max="4000" class="slider" id="mult" oninput='updatemult();'> <span id=multnum></span>
+<p>
+E.g. if first
+(<span style='color:#000999;'>blue</span>)
+frequency is 440Hz, then the second
+(<span style='color:#009909;'>green</span>)
+frequency would be <span id=multnumfreq></span>Hz
+<p>
+<span class=button onclick='$("#mult").val(1000);updatemult();'>Unison</span>
+&nbsp;
+<span class=button onclick='$("#mult").val(2000);updatemult();'>Octave</span>
+&nbsp;
+<span class=button onclick='$("#mult").val(1250);updatemult();'>Major third (just)</span>
+&nbsp;
+<span class=button onclick='$("#mult").val(1260);updatemult();'>Major third (equal)</span>
+&nbsp;
+<span class=button onclick='$("#mult").val(1500);updatemult();'>Fifth (just)</span>
+&nbsp;
+<span class=button onclick='$("#mult").val(1498);updatemult();'>Fifth (equal)</span>
+<p>
+You can also use Left/Right keys to change the multiplier.
+<p>
+Play the sound:
+<span class=buttongreen
+onclick='startosc();'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stoposc();'
+>Stop</span>
+</body>
+</html>

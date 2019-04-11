@@ -1,0 +1,69 @@
+<!doctype html>
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Harmonic Motion: Mass on a Spring</title>
+<link rel=stylesheet type="text/css" href="style.css"> 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style type="text/css">
+@media screen { body {margin-left:5%; margin-right:5%; max-width:900px;} }
+</style>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+  MathJax.Hub.Config({tex2jax: {processEscapes: true}});
+</script>
+<script type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS_HTML">
+</script>
+<script src="https://sagecell.sagemath.org/static/jquery.min.js"></script>
+<script src="https://sagecell.sagemath.org/static/embedded_sagecell.js"></script>
+<script>sagecell.makeSagecell({"inputLocation": ".sage",
+template:       sagecell.templates.minimal,
+evalButtonText: 'Activate'});
+sagecell.makeSagecell({"inputLocation": ".sageedit"});</script>
+</head>
+
+<body>
+
+<b>Harmonic Motion: Mass on a Spring</b>
+&nbsp;
+&nbsp;
+<a href="." class="button">&#10094; back to index</a>
+
+
+<p>
+The graph below is the solution to $y'' + 4 y = 0$
+with initial conditions $y(0) = 1$ and $y'(0) = 0$.
+The solution is $y(t) = \cos(2t)$.
+This represents the undamped motion of a mass on a spring.
+You can modify, the code for different parameters.
+Press "Evaluate" to draw the animation.
+The animation is drawn with SAGE and
+can take a somewhat long time to draw.
+
+<p>
+
+<div class="sageedit">
+<script type="text/x-sage">
+var('t')
+
+# Here is the solution
+f(t) = cos(2*t)
+
+a = animate([line([(k,f(k)),(17.5,f(k)+.01)], thickness = 3, color = 'darkgreen')
+              + plot(f,(t,0,15))
+              + polygon2d([[17.5,f(k)-.5],[17.5,f(k)+.5],[18.5,f(k)+.5],[18.5,f(k)-.5]])
+              + line([(18,f(k)+.5),(18.5,f(k)+.5+(1.5-f(k))/5),(17.5,f(k)+.5+2*(1.5-f(k))/5),(18.5,f(k)+.5+3*(1.5-f(k))/5),(17.5,f(k)+.5+4*(1.5-f(k))/5),(18,2)],color = 'red')
+              for k in srange(0,15,.3)],
+            xmin = -0, xmax = 20, ymin = -2, ymax = 2)
+a.show()
+</script>
+</div>
+
+
+<!-- hack -->
+<br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br> <br>
+
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!doctype html>
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel=stylesheet type="text/css" href="style.css"> 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composition</title>
+<style type="text/css">
+</style>
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-AMS_CHTML">
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+$( document ).ready(function() {
+  recomputeET();
+  recomputeJ();
+  recomputeP();
+});
+
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+var osc = [];
+var gain = [];
+var curfreqs = [];
+
+var lines = [ "" ];
+
+var interval = null;
+var currentline = 0;
+
+function startc()
+{
+  var i;
+
+  for (i = 0; i < 10; i++) {
+    osc[i] = audioCtx.createOscillator();
+    gain[i] = audioCtx.createGain();
+    gain[i].gain.value = 1;
+    gain[i].connect(audioCtx.destination);
+    osc[i].type = 'triangle';
+    osc[i].frequency.value = 1;
+    osc[i].start(0);
+    curfreqs[i] = -1;
+  }
+
+  lines = $("#composition").val().split(/\r?\n/);
+
+  for (i = 0; i < 10; i++) {
+    osc[i].type = $("#wave").val();
+  }
+
+  var len = lines.length;
+
+  var thespan = "<table>";
+
+  for (i = 0; i < len; i++) {
+    thespan += "<tr><td><b>" + (i+1) + ":</b></td><td><span id=playline" + i + ">" + lines[i] + "</span></td></tr>\n";
+  }
+
+  thespan += "</table>";
+  
+  $("#output").html(thespan);
+
+  if (interval != null) {
+    clearInterval(interval);
+  }
+  currentline = -1;
+  interval = window.setInterval(playbeat, $("#beat").val());
+
+  playbeat();
+}
+
+function disconnectall()
+{
+  var i;
+  for (i=0; i < 10; i++) {
+    if (osc[i] != null) {
+      osc[i].disconnect();
+      osc[i].stop(0);
+    }
+    osc[i] = null;
+    curfreqs[i] = -1;
+  }
+}
+
+function playbeat()
+{
+  if (currentline >= 0) {
+    $("#playline"+currentline).css("background-color","#cccccc");
+  }
+  currentline++;
+
+  if (currentline >= lines.length) {
+    clearInterval(interval);
+    interval = null;
+    disconnectall();
+    return;
+  }
+
+  $("#playline"+currentline).css("background-color","lightgreen");
+
+  var str = lines[currentline];
+  var freqs = str.split(',');
+  var thegain = [];
+  var i;
+
+  var tt = "";
+  var joiner = "";
+
+  for (i=0; i < freqs.length && i < 10; i++) {
+    if (freqs[i].indexOf('@') >= 0) {
+      var s = freqs[i].split('@');
+      freqs[i] = Number(s[0]);
+      thegain[i] = Number(s[1]);
+    } else {
+      freqs[i] = Number(freqs[i]);
+      thegain[i] = 1;
+    }
+    if (isNaN(freqs[i]) || freqs[i] <= 0) {
+      freqs[i] = -1;
+    }
+
+    if (isNaN(thegain[i]) || thegain[i] < 0) {
+      freqs[i] = -1;
+      thegain[i] = 1;
+    }
+    
+    if (freqs[i] >= 0) {
+      tt += joiner + "<span style='color:green;'>" + freqs[i] + "</span>";
+      if (thegain[i] != 1) {
+        tt += "@" + thegain[i];
+      }
+    } else {
+      tt += joiner + "<b style='color:green;'>~</b>";
+    }
+    joiner = ", ";
+    
+    gain[i].gain.setValueAtTime(thegain[i], audioCtx.currentTime);
+    if (curfreqs[i] != freqs[i]) {
+      if (freqs[i] > 0) {
+    	osc[i].frequency.setValueAtTime(freqs[i], audioCtx.currentTime);
+        if (curfreqs[i] < 0) {
+	  osc[i].connect(gain[i]);
+        }
+        curfreqs[i] = freqs[i];
+      } else {
+	gain[i].gain.value = 1;
+        osc[i].disconnect();
+	curfreqs[i] = -1;
+      }
+    }
+  }
+  for (; i < 10; i++) {
+    if (curfreqs[i] > 0) {
+      gain[i].gain.value = 1;
+      osc[i].disconnect();
+      curfreqs[i] = -1;
+    }
+  }
+  $("#playline"+currentline).html(tt);
+}
+
+function stopc()
+{
+  $("#playline"+currentline).css("background-color","#cccccc");
+  clearInterval(interval);
+  interval = null;
+  disconnectall();
+}
+
+function recomputeET()
+{
+  var b = $("#etbase").val();
+  var x = $("#etsteps").val();
+
+  $("#etresult").text(parseFloat((b * Math.pow(2,x/12)).toFixed(3)));
+}
+
+function recomputeJ()
+{
+  var b = $("#justbase").val();
+  var x = $("#justfifths").val();
+  var y = $("#justoctaves").val();
+
+  $("#justresult").text(parseFloat((b * (x/y)).toFixed(3)));
+}
+
+function recomputeP()
+{
+  var b = $("#pbase").val();
+  var x = $("#pfifths").val();
+  var y = $("#poctaves").val();
+
+  $("#presult").text(parseFloat((b * Math.pow(3.0/2.0,x) * Math.pow(2.0,y)).toFixed(3)));
+}
+
+
+</script>
+</head>
+
+<body>
+
+<b>Composition</b>
+&nbsp;
+&nbsp;
+<a href="." class="button">&#10094; back to index</a>
+
+
+<p>
+Beat duration: &nbsp; <input type=text id=beat value=250 size=5 />
+&nbsp;
+milliseconds
+
+<p>
+Wave:
+&nbsp;
+<select id=wave class="styled-select">
+  <option value="sine">sine</option>
+  <option value="square">square</option>
+  <option value="sawtooth">sawtooth</option>
+  <option selected value="triangle">triangle</option>
+</select>
+
+<p>
+<span class=buttongreen
+onclick='startc()'
+>Start</span>
+&nbsp;
+<span class=buttonred
+onclick='stopc()'
+>Stop</span>
+
+<p style="font-size:80%; max-width:600px;">
+In the textbox below,
+enter the notes of each beat on its own line.  Each line should be
+a comma separated list of frequencies (in Hz) to play.  Up to
+10 frequencies on each line can be entered.  To make a longer note, simply repeat that
+frequency on the next beat (on the next line).  To make a pause enter an
+empty line (or several lines).
+It is also possible to set a smaller gain (volume) for a certain frequency by including @ and
+a number between 0 and 1.  For example 440@0.5 plays 440Hz at half the volume.
+</p>
+
+<table>
+  <tr>
+    <td style="vertical-align:top; padding-right: 5px; background-color: #cccccc;">
+      <span id=output style="font-size:50%;"></span>
+    </td>
+    <td style="vertical-align:top;">
+      <textarea id="composition" cols=70 rows=65>
+523.25
+
+392
+
+440
+
+349.23
+
+523.25
+392
+440
+349.23
+523.25, 659.26, 783.99
+523.25, 659.26, 783.99
+392, 493.89, 587.33
+392, 493.89, 587.33
+440, 523.25, 659.26
+440, 523.25, 659.26
+349.23, 440, 523.25
+349.23, 440, 523.25
+523.25, 659.26, 783.99
+523.25, 659.26, 783.99
+392, 493.89, 587.33
+392, 493.89, 587.33
+440, 523.25, 659.26
+440, 523.25, 659.26
+349.23, 440, 523.25
+349.23, 440, 523.25
+
+440
+445
+450
+455
+460
+465
+470
+475
+480
+485
+490
+495
+500
+
+500
+
+500
+      
+500</textarea>
+    </td>
+    <td style='vertical-align:top; max-width:450px;padding-left:5px; font-size:80%;'>
+	    <b>Helpful formulas</b> (results rounded to 2 decimal places):
+	    <p>
+	    <b>Equal tempering.</b>  Enter base frequency \(b\) in Hz and
+	    the number of half steps \(x\) to go up or down (negative \(x\) for going down).
+	    For example, C (to be exact C<sub>5</sub>) is 3 half steps up from A, which is usually 440 Hz.
+	    To calculate the number of half steps, recall the notes of the chromatic scale:
+	    <br>
+	    A &nbsp;
+	    A&#x266f;/B&#x266d; &nbsp;
+	    B &nbsp;
+	    C &nbsp;
+	    C&#x266f;/D&#x266d; &nbsp;
+	    D &nbsp;
+	    D&#x266f;/E&#x266d; &nbsp;
+	    E &nbsp;
+	    F &nbsp;
+	    F&#x266f;/G&#x266d; &nbsp;
+	    G &nbsp;
+	    G&#x266f;/A&#x266d;
+	    <p>
+	    \(b = {}\) <input type=text id=etbase oninput='recomputeET()' value=440 size=5 />
+	    &nbsp;
+	    \(x = {}\) <input type=text id=etsteps oninput='recomputeET()' value=3 size=5 />
+	    <p>
+	    \(b \, 2^{x/12} = {}\) <span id=etresult></span>
+	    <p style="padding-top:5px;">
+	    <b>Just tunings.</b>  Enter base frequency in Hz, and the ratio as \(x\) over
+	    \(y\).
+	    For example, starting at A with 440Hz, to get to C we go a minor third, that is, \( \frac{6}{5} \).
+	    <p>
+	    \(b = {}\) <input type=text id=justbase oninput='recomputeJ()' value=440 size=5 />
+	    &nbsp;
+	    \(x = {}\) <input type=text id=justfifths oninput='recomputeJ()' value=6 size=5 />
+	    &nbsp;
+	    \(y = {}\) <input type=text id=justoctaves oninput='recomputeJ()' value=5 size=5 />
+	    <p>
+	    \(b \, \left( \frac{x}{y} \right) = {}\) <span id=justresult></span>
+	    <p>
+	    <p style="padding-top:5px;">
+	    <b>Pythagorean tuning.</b>  Enter base frequency in Hz, the number \(x\) of
+	    perfect fifths to go up or down, and the number \(y\) of octaves to go up or down.
+	    For example, starting at A with 440Hz, to get to C one goes down 3 fifths and up two octaves.
+	    <p>
+	    \(b = {}\) <input type=text id=pbase oninput='recomputeP()' value=440 size=5 />
+	    &nbsp;
+	    \(x = {}\) <input type=text id=pfifths oninput='recomputeP()' value="-3" size=5 />
+	    &nbsp;
+	    \(y = {}\) <input type=text id=poctaves oninput='recomputeP()' value=2 size=5 />
+	    <p>
+	    \(b \, {\left( \frac{3}{2} \right)}^{x} \, 2^{y} = {}\) <span id=presult></span>
+	    <p>
+	    <p style="padding-top:5px;">
+	    <b>The circle of fifths.</b>
+	    <img src="circleoffifths.svg" width=450 height=450>
+	    <br>
+	    <span style="display:block;font-size:90%;width:450px;text-align:right;">(Image from <a href="https://en.wikipedia.org/wiki/Circle_of_fifths">Wikipedia</a>)</span>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

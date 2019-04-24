@@ -126,6 +126,7 @@ function playbeat()
       thegain[i] = 1;
     }
 
+    var intrnote = "";
     thenote = thenote.trim();
 
     if (thenote.length > 0) {
@@ -133,12 +134,15 @@ function playbeat()
 
       if (thenote.charAt(0) == 't' ||
 	  thenote.charAt(0) == 'T') {
+	intrnote = "T";
 	lenote = 10;
-      } else if (thenote.charAt(0) == 'E' ||
+      } else if (thenote.charAt(0) == 'e' ||
 	  thenote.charAt(0) == 'E') {
+	intrnote = "E";
 	lenote = 11;
       } else {
         lenote = parseInt(thenote.charAt(0));
+	intrnote = lenote.toString();
       }
       if (isNaN(lenote)) {
         freqs[i] = -1;
@@ -148,8 +152,10 @@ function playbeat()
         for (j=1; j < thenote.length; j++) {
 	  if (thenote.charAt(j) == '+') {
              freqs[i] = freqs[i]*2.0;
+	     intrnote = intrnote + "+";
           } else if (thenote.charAt(j) == '-') {
              freqs[i] = freqs[i]/2.0;
+	     intrnote = intrnote + "-";
           }
         }
       }
@@ -164,7 +170,7 @@ function playbeat()
     }
 
     if (freqs[i] >= 0) {
-      tt += joiner + "<span style='color:green;'>" + thenote + "(" + freqs[i].toFixed(2) + ")" + "</span>";
+      tt += joiner + "<span style='color:green;'>" + intrnote + "(" + freqs[i].toFixed(2) + ")" + "</span>";
       if (thegain[i] != 1) {
         tt += "@" + thegain[i];
       }
